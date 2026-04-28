@@ -48,7 +48,6 @@ export default function ChatWindow() {
         throw new Error(`API error: ${response.statusText}`);
       }
 
-      // Parse the streaming SSE response
       const reader = response.body?.getReader();
       if (!reader) {
         throw new Error("No response body");
@@ -56,71 +55,28 @@ export default function ChatWindow() {
 
       let fullResponse = "";
       const decoder = new TextDecoder();
-      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
+        fullResponse += chunk;
 
-        // Parse SSE format (data: {...}\n\n)
-        const entries = buffer.split("\n\n");
-        buffer = entries[entries.length - 1]; // Keep the incomplete entry in buffer
-
-        for (let i = 0; i < entries.length - 1; i++) {
-          const entry = entries[i].trim();
-          if (!entry) continue;
-
-          // Remove "data: " prefix if present
-          const jsonStr = entry.startsWith("data: ") 
-            ? entry.slice(6) 
-            : entry;
-
-          try {
-            const data = JSON.parse(jsonStr);
-            
-            // Extract text from text-delta events
-            if (data.type === "text-delta" && data.delta) {
-              fullResponse += data.delta;
-            }
-          } catch (e) {
-            // Skip lines that aren't valid JSON
+        setMessages((prev) => {
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg?.role === "ai") {
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMsg, content: fullResponse },
+            ];
           }
-        }
-
-        // Update AI message in real-time
-        if (fullResponse) {
-          setMessages((prev) => {
-            const lastMsg = prev[prev.length - 1];
-            if (lastMsg?.role === "ai") {
-              return [
-                ...prev.slice(0, -1),
-                { ...lastMsg, content: fullResponse },
-              ];
-            }
-            return [...prev, { role: "ai", content: fullResponse }];
-          });
-        }
+          return [...prev, { role: "ai", content: fullResponse }];
+        });
       }
 
-      // Process any remaining buffer
-      if (buffer.trim()) {
-        const jsonStr = buffer.startsWith("data: ") 
-          ? buffer.slice(6) 
-          : buffer;
-        try {
-          const data = JSON.parse(jsonStr);
-          if (data.type === "text-delta" && data.delta) {
-            fullResponse += data.delta;
-          }
-        } catch (e) {
-          // Skip
-        }
-      }
+      fullResponse += decoder.decode();
 
-      // Final update with complete response
       if (fullResponse) {
         setMessages((prev) => {
           const lastMsg = prev[prev.length - 1];
