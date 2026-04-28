@@ -1,6 +1,16 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is Awaretalk AI, a Next.js mental wellness companion chat app with streaming responses powered by the Vercel AI SDK.
 
 ## Getting Started
+
+### Environment variables
+
+Create a `.env.local` file in the project root:
+
+```bash
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_studio_api_key_here
+```
+
+You can get the key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
 First, run the development server:
 
